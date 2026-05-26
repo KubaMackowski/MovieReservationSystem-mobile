@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart'; // Zmiana importu!
-import 'screens/home_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:movie_reservation_system_mobile/screens/home_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() {
-  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
 }
 
@@ -11,13 +11,10 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const CupertinoApp(
-      title: 'Merito Cinema',
-      theme: CupertinoThemeData(
-        primaryColor: CupertinoColors.activeBlue,
-        // Tutaj ustawiasz fonty i kolory specyficzne dla iOS
-      ),
-      home: HomeScreen(),
+    return MaterialApp(
+      title: 'Movie Reservation System',
+      theme: ThemeData(useMaterial3: true),
+      home: const HomeScreen(), // Uruchamiamy aplikację na ekranie logowania
     );
   }
 }
