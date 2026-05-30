@@ -16,14 +16,23 @@ class Room {
   });
 
   factory Room.fromJson(Map<String, dynamic> json) {
+    List<Seat> parsedSeats = [];
+
+    // Backend z C# czasem zwraca listę miejsc pod kluczem 'seatObjects',
+    // a czasem (jak widać w pobieraniu filmu) pod kluczem 'seats'.
+    if (json['seats'] is List) {
+      parsedSeats = (json['seats'] as List).map((i) => Seat.fromJson(i)).toList();
+    } else if (json['seatObjects'] is List) {
+      parsedSeats = (json['seatObjects'] as List).map((i) => Seat.fromJson(i)).toList();
+    }
+
     return Room(
       id: json['id'] ?? 0,
       number: json['number'] ?? 0,
-      seats: json['seats'] ?? 0,
-      generatedSeatsCount: json['generatedSeatsCount'] ?? 0,
-      seatObjects: json['seatObjects'] != null
-          ? (json['seatObjects'] as List).map((i) => Seat.fromJson(i)).toList()
-          : [],
+      // Jeśli 'seats' okazało się listą, chronimy aplikację przed crashem
+      seats: json['seats'] is int ? json['seats'] : parsedSeats.length,
+      generatedSeatsCount: json['generatedSeatsCount'] is int ? json['generatedSeatsCount'] : 0,
+      seatObjects: parsedSeats, // Zawsze mamy pewność, że to prawidłowa lista
     );
   }
 }

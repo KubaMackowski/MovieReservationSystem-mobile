@@ -1,3 +1,5 @@
+import 'room.dart';
+
 class Showing {
   final int id;
   final DateTime date;
@@ -7,6 +9,7 @@ class Showing {
   final int roomId;
   final int roomNumber;
   final double price;
+  final Room? room; // <--- DODANE POLE SALI
 
   Showing({
     required this.id,
@@ -17,6 +20,7 @@ class Showing {
     required this.roomId,
     required this.roomNumber,
     required this.price,
+    this.room, // <--- DODANE
   });
 
   factory Showing.fromJson(Map<String, dynamic> json) {
@@ -29,6 +33,8 @@ class Showing {
       roomId: json['room_Id'] ?? 0,
       roomNumber: json['roomNumber'] ?? 0,
       price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      // <--- MAPOWANIE SALI I MIEJSC
+      room: json['room'] != null ? Room.fromJson(json['room']) : null,
     );
   }
 }

@@ -2,11 +2,12 @@ import 'dart:developer'; // Narzędzie do logowania w konsoli i profilerze
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/models.dart';
 
 class ApiClient {
   late final Dio _dio;
-
+  final _storage = const FlutterSecureStorage();
   String get _baseUrl {
     if (kDebugMode) {
       if (Platform.isAndroid) return 'http://10.0.2.2:8080/api';
@@ -22,6 +23,33 @@ class ApiClient {
       receiveTimeout: const Duration(seconds: 3),
       contentType: 'application/json',
     ));
+    // DODANE: INTERCEPTOR
+    // Uruchamia się automatycznie przed każdym strzałem do API
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        // Czytamy token z bezpiecznego schowka
+        final token = await _storage.read(key: 'jwt_token');
+
+        // Jeśli istnieje, doklejamy go do nagłówków
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+        }
+
+        return handler.next(options); // Kontynuuj wysyłanie zapytania
+      },
+    ));
+  }
+
+  Future<User?> getMe() async {
+    try {
+      // Zakładam, że masz taki endpoint w kontrolerze C# (jeśli masz /users/me, zmień poniżej)
+      final response = await _dio.get('/auth/me');
+      return User.fromJson(response.data);
+    } catch (e) {
+      // Jeśli rzuci błąd (np. 401 bo token wygasł), zwracamy null (użytkownik niezalogowany)
+      log('Nie udało się pobrać profilu: $e', name: 'API_GET_ME');
+      return null;
+    }
   }
 
   Future<Response> login(String email, String password) async {
@@ -191,6 +219,46 @@ class ApiClient {
         }
       }
 
+      throw Exception(errorMessage);
+    }
+  }
+
+  // Tworzenie rezerwacji
+  Future<bool> createReservation(int showingId, int seatId, String userId) async {
+    try {
+      // Używamy kluczy PascalCase, dokładnie tak jak w Twoim typie ReservationPayload z Next.js
+      await _dio.post('/reservations', data: {
+        'ShowingId': showingId,
+        'SeatId': seatId,
+        'UserId': userId,
+      });
+
+      // Odpowiednik Twojego { success: true }
+      return true;
+
+    } on DioException catch (e) {
+      String errorMessage = 'Nie udało się utworzyć rezerwacji.';
+
+      // Wyciąganie szczegółów błędu z backendu C#
+      if (e.response != null && e.response?.data != null) {
+        final data = e.response!.data;
+
+        log('Błąd rezerwacji API: $data', name: 'API_RESERVATION_ERROR');
+
+        try {
+          if (data is Map) {
+            if (data.containsKey('title')) {
+              errorMessage = data['title'].toString();
+            } else if (data.containsKey('message')) {
+              errorMessage = data['message'].toString();
+            }
+          } else if (data is String) {
+            errorMessage = data;
+          }
+        } catch (_) {}
+      }
+
+      // Rzucamy wyjątek, który przechwyci blok catch w movie_details_screen.dart
       throw Exception(errorMessage);
     }
   }

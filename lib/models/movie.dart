@@ -1,15 +1,18 @@
+import 'showing.dart'; // Upewnij się, że masz dostęp do tego modelu (lub importuj z models.dart)
+
 class Movie {
   final int id;
   final String title;
   final String description;
   final String status;
-  final String releaseDate; // Poprawiłem literówkę w nazwie zmiennej darta
+  final String releaseDate;
   final int duration;
   final String director;
   final String production;
   final String cast;
   final List<String> genres;
   final String posterPath;
+  final List<Showing> showings; // <--- DODANE POLE
 
   Movie({
     required this.id,
@@ -23,6 +26,7 @@ class Movie {
     required this.cast,
     required this.genres,
     required this.posterPath,
+    required this.showings, // <--- DODANE DO KONSTRUKTORA
   });
 
   factory Movie.fromJson(Map<String, dynamic> json) {
@@ -38,6 +42,10 @@ class Movie {
       cast: json['cast'] ?? '',
       genres: json['genres'] != null ? List<String>.from(json['genres']) : [],
       posterPath: json['posterPath'] ?? '',
+      // <--- DODANE MAPOWANIE SEANSÓW
+      showings: json['showings'] != null
+          ? (json['showings'] as List).map((i) => Showing.fromJson(i)).toList()
+          : [],
     );
   }
 }

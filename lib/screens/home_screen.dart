@@ -4,6 +4,7 @@ import 'package:movie_reservation_system_mobile/widgets/footer.dart';
 import 'package:movie_reservation_system_mobile/widgets/navbar.dart';
 import '../models/models.dart';
 import '../data/api_client.dart';
+import 'movie_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -203,8 +204,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildMovieCard(Movie movie, Color bgColor) {
     return GestureDetector(
       onTap: () {
-        // Navigator.push(context, MaterialPageRoute(builder: (_) => MovieDetailsScreen(id: movie.id)));
-      },
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => MovieDetailsScreen(movieId: movie.id)),
+        );
+        },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
