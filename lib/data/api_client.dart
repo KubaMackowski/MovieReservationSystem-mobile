@@ -109,4 +109,89 @@ class ApiClient {
       return null;
     }
   }
+
+  Future<bool> register({
+    required String firstName,
+    required String lastName,
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await _dio.post('/auth/register', data: {
+        // Zmieniono na małe litery, by pasowało w 100% do formatu z Next.js
+        'firstname': firstName,
+        'lastname': lastName,
+        'email': email,
+        'password': password,
+      });
+      return true; // Sukces
+    } on DioException catch (e) {
+      String errorMessage = 'Błąd podczas rejestracji';
+
+      if (e.response != null && e.response?.data != null) {
+        final data = e.response!.data;
+
+        log('Błąd rejestracji API: $data', name: 'API_REGISTER_ERROR');
+
+        try {
+          // SCENARIUSZ 1: Błędy zwracane jako prosta lista (rzadkie w C#, ale możliwe)
+          if (data is List) {
+            final messages = data
+                .map((err) =>
+            err is Map
+                ? (err['description'] ?? err['code'])
+                : err.toString())
+                .where((msg) =>
+            msg
+                .toString()
+                .isNotEmpty)
+                .join('\n');
+            if (messages.isNotEmpty) errorMessage = messages;
+          }
+          // SCENARIUSZ 2: Odpowiedź to słownik (Map) - Twój obecny przypadek!
+          else if (data is Map) {
+            List<String> allErrors = [];
+
+            // Krok A: Jeśli błędy są zagnieżdżone w kluczu 'errors' (standardowe FluentValidation)
+            if (data.containsKey('errors') && data['errors'] is Map) {
+              final Map errors = data['errors'];
+              allErrors = errors.values
+                  .expand((v) => v is List ? v : [v])
+                  .map((e) => e.toString())
+                  .toList();
+            }
+            // Krok B: Jeśli błędy leżą luzem jako listy (np. {"Register": ["Błąd 1", "Błąd 2"]})
+            else {
+              for (var value in data.values) {
+                if (value is List) {
+                  allErrors.addAll(value.map((e) => e.toString()));
+                }
+              }
+            }
+
+            // Krok C: Jeśli znaleźliśmy jakiekolwiek błędy w listach, łączymy je enterem
+            if (allErrors.isNotEmpty) {
+              errorMessage = allErrors.join(
+                  '\n\n'); // Podwójny enter dla lepszej czytelności
+            }
+            // Krok D: Jeśli to nie lista błędów, szukamy pojedynczych pól 'title' lub 'message'
+            else if (data.containsKey('title')) {
+              errorMessage = data['title'].toString();
+            } else if (data.containsKey('message')) {
+              errorMessage = data['message'].toString();
+            }
+          }
+          // SCENARIUSZ 3: Zwykły tekst (String)
+          else if (data is String) {
+            errorMessage = data;
+          }
+        } catch (parseError) {
+          log('Błąd parsowania odpowiedzi: $parseError',
+              name: 'API_PARSE_ERROR');
+        }
+      }
+
+      throw Exception(errorMessage);
+    }
+  }
 }

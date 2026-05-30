@@ -1,43 +1,48 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../data/api_client.dart';
-import 'home_screen.dart';
-import 'register_screen.dart';
+import 'login_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
   final _apiClient = ApiClient();
-  final _storage = const FlutterSecureStorage();
 
   bool _isLoading = false;
   bool _isPasswordObscured = true;
+  bool _isConfirmPasswordObscured = true;
   String? _errorMessage;
 
-  // Kolory aplikacji (odpowiedniki z Next.js)
-  final Color _bgColor = const Color(0xFF1E1E2C); // bg-background
-  final Color _cardColor = const Color(0xFF2A2A3D); // tło karty
-  final Color _inputColor = const Color(0xFF151520); // neumorphic-inset
-  final Color _primaryColor = Colors.deepPurpleAccent; // bg-primary
-  final Color _textColor = Colors.white; // text-main
+  // Kolory aplikacji (zgodne z LoginScreen)
+  final Color _bgColor = const Color(0xFF1E1E2C);
+  final Color _cardColor = const Color(0xFF2A2A3D);
+  final Color _inputColor = const Color(0xFF151520);
+  final Color _primaryColor = Colors.deepPurpleAccent;
+  final Color _textColor = Colors.white;
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
+  Future<void> _handleRegister() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -46,34 +51,22 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final response = await _apiClient.login(
-        _emailController.text.trim(),
-        _passwordController.text,
+      final success = await _apiClient.register(
+        firstName: _firstNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
 
-      String token = '';
-
-      if (response.data is String) {
-        token = response.data;
-      } else if (response.data is Map<String, dynamic>) {
-        token = response.data['token'] ?? '';
-      } else {
-        throw Exception('Nieznany format odpowiedzi z serwera');
-      }
-
-      if (token.isEmpty) {
-        throw Exception('Serwer nie zwrócił tokena logowania');
-      }
-
-      await _storage.write(key: 'jwt_token', value: token);
-
-      if (mounted) {
-        // Po pomyślnym logowaniu usuwamy ekran logowania z historii i wracamy do HomeScreen
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (route) => false, // Czyści całą historię nawigacji
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Konto zostało utworzone! Możesz się zalogować.'),
+            backgroundColor: Colors.green,
+          ),
         );
+        // Wracamy do ekranu logowania
+        Navigator.pop(context);
       }
     } catch (e) {
       setState(() {
@@ -92,7 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _bgColor,
-      // AppBar ze strzałką powrotu
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -104,7 +96,7 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // KARTA LOGOWANIA (Neumorphic Outset)
+              // KARTA REJESTRACJI (Neumorphic Outset)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(32.0),
@@ -123,24 +115,48 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       // NAGŁÓWEK
                       Text(
-                        'Witaj ponownie',
+                        'Stwórz konto',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 24, // text-2xl
+                          fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: _textColor,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Zaloguj się aby kontynuować',
+                        'Dołącz do nas już dziś',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          fontSize: 14, // text-sm
+                          fontSize: 14,
                           color: _textColor.withOpacity(0.6),
                         ),
                       ),
                       const SizedBox(height: 32),
+
+                      // POLE IMIĘ
+                      _buildLabel('Imię'),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _firstNameController,
+                        hintText: 'Jan',
+                        icon: Icons.badge_outlined,
+                        textInputAction: TextInputAction.next,
+                        validator: (value) => value == null || value.trim().isEmpty ? 'Wpisz imię' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      // POLE NAZWISKO
+                      _buildLabel('Nazwisko'),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _lastNameController,
+                        hintText: 'Kowalski',
+                        icon: Icons.badge_outlined,
+                        textInputAction: TextInputAction.next,
+                        validator: (value) => value == null || value.trim().isEmpty ? 'Wpisz nazwisko' : null,
+                      ),
+                      const SizedBox(height: 16),
 
                       // POLE EMAIL
                       _buildLabel('Email'),
@@ -148,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       _buildTextField(
                         controller: _emailController,
                         hintText: 'john@example.com',
-                        icon: Icons.person_outline,
+                        icon: Icons.mail_outline,
                         keyboardType: TextInputType.emailAddress,
                         textInputAction: TextInputAction.next,
                         validator: (value) {
@@ -157,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           return null;
                         },
                       ),
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 16),
 
                       // POLE HASŁO
                       _buildLabel('Hasło'),
@@ -167,8 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         hintText: '••••••••',
                         icon: Icons.lock_outline,
                         obscureText: _isPasswordObscured,
-                        textInputAction: TextInputAction.done,
-                        onFieldSubmitted: (_) => _handleLogin(),
+                        textInputAction: TextInputAction.next,
                         suffixIcon: IconButton(
                           icon: Icon(
                             _isPasswordObscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
@@ -178,6 +193,32 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) return 'Wpisz hasło';
+                          if (value.length < 6) return 'Hasło musi mieć min. 6 znaków';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // POLE POWTÓRZ HASŁO
+                      _buildLabel('Powtórz hasło'),
+                      const SizedBox(height: 8),
+                      _buildTextField(
+                        controller: _confirmPasswordController,
+                        hintText: '••••••••',
+                        icon: Icons.lock_reset_outlined,
+                        obscureText: _isConfirmPasswordObscured,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _handleRegister(),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isConfirmPasswordObscured ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                            color: _textColor.withOpacity(0.5),
+                          ),
+                          onPressed: () => setState(() => _isConfirmPasswordObscured = !_isConfirmPasswordObscured),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) return 'Powtórz hasło';
+                          if (value != _passwordController.text) return 'Hasła nie są identyczne';
                           return null;
                         },
                       ),
@@ -201,17 +242,17 @@ class _LoginScreenState extends State<LoginScreen> {
 
                       const SizedBox(height: 32),
 
-                      // PRZYCISK ZALOGUJ
+                      // PRZYCISK ZAREJESTRUJ
                       SizedBox(
-                        height: 56, // h-14
+                        height: 56,
                         child: FilledButton(
                           style: FilledButton.styleFrom(
                             backgroundColor: _primaryColor,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12), // rounded-xl
+                              borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          onPressed: _isLoading ? null : _handleLogin,
+                          onPressed: _isLoading ? null : _handleRegister,
                           child: _isLoading
                               ? const SizedBox(
                             height: 24,
@@ -219,10 +260,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
                           )
                               : Text(
-                            'Zaloguj',
+                            'Zarejestruj się',
                             style: TextStyle(
                               color: _bgColor,
-                              fontSize: 18, // text-lg
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -233,22 +274,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-              // LINK DO REJESTRACJI (FOOTER)
+              // LINK DO LOGOWANIA
               const SizedBox(height: 40),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Jeszcze nie masz konta? ',
+                    'Masz już konto? ',
                     style: TextStyle(color: _textColor.withOpacity(0.6)),
                   ),
                   GestureDetector(
                     onTap: () {
-                      // Nawigacja do rejestracji
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterScreen()));
+                      Navigator.pop(context); // Wraca do ekranu logowania
                     },
                     child: Text(
-                      'Zarejestruj się',
+                      'Zaloguj się',
                       style: TextStyle(
                         color: _primaryColor,
                         fontWeight: FontWeight.bold,
@@ -266,23 +306,21 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // --- POMOCNICZE WIDGETY DLA FORMULARZA ---
 
-  // Tworzy małą, wyblakłą etykietę nad polem (np. "EMAIL")
   Widget _buildLabel(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 4.0),
       child: Text(
         text.toUpperCase(),
         style: TextStyle(
-          fontSize: 12, // text-xs
+          fontSize: 12,
           fontWeight: FontWeight.bold,
-          letterSpacing: 1.5, // tracking-widest
+          letterSpacing: 1.5,
           color: _textColor.withOpacity(0.7),
         ),
       ),
     );
   }
 
-  // Tworzy pole tekstowe symulujące "neumorphic-inset"
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -306,13 +344,13 @@ class _LoginScreenState extends State<LoginScreen> {
         hintText: hintText,
         hintStyle: TextStyle(color: _textColor.withOpacity(0.3)),
         filled: true,
-        fillColor: _inputColor, // Ciemniejsze tło wewnątrz pola
+        fillColor: _inputColor,
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         prefixIcon: Icon(icon, color: _textColor.withOpacity(0.5)),
         suffixIcon: suffixIcon,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none, // Ukrywamy domyślną ramkę
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

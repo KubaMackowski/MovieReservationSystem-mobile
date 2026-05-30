@@ -52,6 +52,26 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _handleLogout() async {
+    // 1. Usuwamy token z bezpiecznego schowka
+    await _storage.delete(key: 'jwt_token');
+
+    // 2. Aktualizujemy stan UI
+    if (mounted) {
+      setState(() {
+        _isLoggedIn = false;
+      });
+
+      // 3. Pokazujemy potwierdzenie
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Wylogowano pomyślnie!'),
+          backgroundColor: Colors.blueGrey,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Filtracja filmów z wybranego gatunku
@@ -68,12 +88,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // NAVBAR wydzielony do osobnego pliku
       appBar: Navbar(
         isLoggedIn: _isLoggedIn,
-        onLoginPressed: () {
-          // Navigator.push(context, MaterialPageRoute(builder: (_) => const LoginScreen()));
-        },
-        onProfilePressed: () {
-          // Nawigacja do profilu użytkownika
-        },
+        onLogoutPressed: _handleLogout,
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: primaryColor))

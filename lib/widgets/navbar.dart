@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import '../screens/login_screen.dart'; // Import ekranu logowania
+// import '../screens/profile_screen.dart'; // Odkomentuj/dodaj, gdy stworzysz ekran profilu
 
 class Navbar extends StatelessWidget implements PreferredSizeWidget {
   final bool isLoggedIn;
-  final VoidCallback? onLoginPressed;
-  final VoidCallback? onProfilePressed;
+  final VoidCallback? onLogoutPressed;
 
   const Navbar({
     super.key,
     this.isLoggedIn = false,
-    this.onLoginPressed,
-    this.onProfilePressed,
+    this.onLogoutPressed,
   });
 
   @override
@@ -34,8 +34,8 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
       actions: [
         if (isLoggedIn)
           IconButton(
-            icon: const Icon(Icons.person, color: textColor),
-            onPressed: onProfilePressed,
+            icon: const Icon(Icons.logout, color: Colors.redAccent), // Zmieniona ikona na wyloguj
+            onPressed: onLogoutPressed, // Wywołujemy przekazaną akcję
           )
         else
           Padding(
@@ -45,7 +45,13 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
                 backgroundColor: primaryColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              onPressed: onLoginPressed,
+              onPressed: () {
+                // NAWIGACJA DO EKRANU LOGOWANIA
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
               child: const Text('Zaloguj się', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ),
@@ -53,7 +59,6 @@ class Navbar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  // Wymagane przez PreferredSizeWidget – standardowa wysokość paska
   @override
   Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
